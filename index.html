@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>指數特攻：課堂實戰特訓版 - Index Blast</title>
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff007f;
+            --neon-yellow: #ffe600;
+            --neon-green: #39ff14;
+            --neon-purple: #a855f7;
+            --bg-dark: #070913;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 880px;
+            height: 100vh;
+            max-height: 920px;
+            background: radial-gradient(circle at 50% 50%, #151833 0%, #080a14 100%);
+            border: 2px solid #2a3563;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 頂部 HUD 狀態列 */
+        .hud-top {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .hud-stat {
+            background: rgba(13, 18, 38, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            backdrop-filter: blur(8px);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            white-space: nowrap;
+        }
+
+        .hud-pause-btn {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            color: #f8fafc;
+            border: 1px solid #64748b;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+        }
+
+        .hud-pause-btn:hover {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        /* 10 雜兵關卡進度條 */
+        .stage-progress-bar {
+            position: absolute;
+            top: 52px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 88%;
+            max-width: 560px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            padding: 5px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00f0ff, #38bdf8);
+            box-shadow: 0 0 10px #00f0ff;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.boss-ready {
+            background: linear-gradient(90deg, #ff007f, #ffe600);
+            box-shadow: 0 0 14px #ff007f;
+            animation: pulse 0.8s infinite alternate;
+        }
+
+        .progress-label {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--neon-yellow);
+            white-space: nowrap;
+        }
+
+        /* 底部武器面板 */
+        .control-deck {
+            background: rgba(10, 14, 30, 0.96);
+            border-top: 2px solid #2a3563;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .deck-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .nuke-btn {
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            color: white;
+            border: 1px solid #fda4af;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(225, 29, 72, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .nuke-btn:active { transform: scale(0.95); }
+        .nuke-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+        .missile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        @media (min-width: 600px) {
+            .missile-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .missile-btn {
+            background: linear-gradient(180deg, #1e294b 0%, #0f172a 100%);
+            border: 2px solid #38bdf8;
+            border-radius: 12px;
+            color: #ffffff;
+            padding: 12px 6px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 8px rgba(56, 189, 248, 0.2);
+            transition: all 0.15s;
+            min-height: 60px;
+        }
+
+        .missile-btn:hover {
+            border-color: #ffe600;
+            box-shadow: 0 0 16px rgba(255, 230, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .missile-btn:active {
+            transform: scale(0.96);
+            background: #38bdf8;
+            color: #000;
+        }
+
+        .missile-btn.btn-wrong {
+            border-color: #ef4444 !important;
+            background: #450a0a !important;
+            animation: shake 0.35s ease-in-out;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 次方右上角強化樣式 */
+        sup {
+            font-size: 0.65em;
+            line-height: 0;
+            position: relative;
+            top: -0.55em;
+            vertical-align: baseline;
+            color: var(--neon-yellow);
+            font-weight: 900;
+            margin-left: 2px;
+        }
+
+        /* Boss 警告橫幅 */
+        .boss-warning-banner {
+            position: absolute;
+            top: 40%;
+            left: 0;
+            width: 100%;
+            background: rgba(239, 68, 68, 0.9);
+            color: #fff;
+            padding: 18px 0;
+            text-align: center;
+            font-size: 2.1rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            z-index: 50;
+            box-shadow: 0 0 35px #ef4444;
+            transform: scaleY(0);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        .boss-warning-banner.show {
+            transform: scaleY(1);
+        }
+
+        /* 模式選擇卡片 */
+        .mode-selection-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 540px;
+            width: 100%;
+            margin: 18px 0;
+        }
+
+        .mode-card {
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 14px;
+            padding: 18px 14px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mode-card:hover { transform: translateY(-4px); }
+        .mode-card.normal-mode { border-color: #38bdf8; }
+        .mode-card.normal-mode:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); border-color: #00f0ff; }
+        .mode-card.challenge-mode { border-color: #f43f5e; }
+        .mode-card.challenge-mode:hover { box-shadow: 0 0 20px rgba(244, 63, 94, 0.5); border-color: #ff007f; }
+
+        .mode-title { font-size: 1.2rem; font-weight: 900; }
+        .mode-desc { font-size: 0.82rem; color: #94a3b8; line-height: 1.4; }
+
+        /* 彈窗畫面 */
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(7, 9, 19, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .title-glitch {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue), 2px 2px var(--neon-pink);
+            margin-bottom: 8px;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #00f0ff, #3b82f6);
+            color: #000;
+            border: none;
+            padding: 14px 38px;
+            font-size: 1.15rem;
+            font-weight: 900;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+            margin-top: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.9);
+        }
+
+        .btn-sub {
+            background: #334155;
+            color: #fff;
+            border: 1px solid #64748b;
+            padding: 10px 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-sub:hover {
+            background: #475569;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #9f1239;
+        }
+
+        .rank-table {
+            width: 100%;
+            max-width: 520px;
+            margin: 16px 0;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .rank-table th, .rank-table td { padding: 8px; border-bottom: 1px solid #1e294b; }
+        .rank-table th { color: var(--neon-blue); }
+
+        /* 🖼️ 便條紙木夾提示卡（Sticky Note Hint Modal） */
+        .hint-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hint-sticky-note {
+            position: relative;
+            width: 320px;
+            padding: 36px 24px 22px;
+            background: #fef08a;
+            color: #1e293b;
+            border-radius: 6px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 2px 5px rgba(0,0,0,0.2);
+            transform: rotate(-1.5deg);
+            border: 1px solid #fde047;
+            text-align: center;
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .hint-sticky-note::before {
+            content: '';
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65px;
+            height: 28px;
+            background: linear-gradient(135deg, #d2b48c 0%, #b8860b 100%);
+            border-radius: 4px;
+            border: 2px solid #8b5a2b;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .hint-title {
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #92400e;
+            margin-bottom: 12px;
+            border-bottom: 2px dashed #ca8a04;
+            padding-bottom: 6px;
+        }
+
+        .hint-body {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+        }
+
+        .hint-body sup {
+            color: #b45309;
+            font-size: 0.65em;
+        }
+
+        .hint-close-btn {
+            margin-top: 16px;
+            background: #ca8a04;
+            color: white;
+            border: none;
+            padding: 7px 20px;
+            border-radius: 6px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+
+        .hint-close-btn:hover { background: #a16207; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+            100% { transform: scale(1) rotate(-1.5deg); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.04); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <!-- HUD -->
+        <div class="hud-top">
+            <div class="hud-stat" style="color: var(--neon-blue);">🏆 <span id="score-val">0</span></div>
+            <div class="hud-stat" id="mode-badge" style="color: #38bdf8;">🔰 基礎模式</div>
+            <div class="hud-stat" style="color: var(--neon-pink);">🛡️ HP: <span id="hp-val">100</span>%</div>
+            <div class="hud-stat" style="color: var(--neon-yellow);">🚩 WAVE <span id="wave-val">1</span>/8</div>
+            <button class="hud-pause-btn" onclick="pauseGame()">⏸️ 暫停</button>
+        </div>
+
+        <!-- 10 雜兵進度條 -->
+        <div class="stage-progress-bar">
+            <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 700;">進度:</span>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <span class="progress-label" id="progress-text">👾 雜兵 0 / 10</span>
+        </div>
+
+        <!-- Boss 警告橫幅 -->
+        <div class="boss-warning-banner" id="boss-banner">
+            ⚠️ WARNING! 關卡 BOSS 降臨 ⚠️
+        </div>
+
+        <!-- 畫布 -->
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- 底部武器操作台 -->
+        <div class="control-deck">
+            <div class="deck-header">
+                <span id="target-prompt">🎯 7次算錯即陣亡！請在草稿紙上仔細推導</span>
+                <button class="nuke-btn" id="nuke-btn" onclick="useNuke()" disabled>
+                    💣 a⁰ 全屏奧義 (<span id="nuke-count">1</span>)
+                </button>
+            </div>
+            
+            <div class="missile-grid" id="ammo-grid">
+                <!-- 選項按鈕 -->
+            </div>
+        </div>
+
+        <!-- 開始畫面 -->
+        <div class="overlay-screen" id="start-screen">
+            <h1 class="title-glitch">⚡ 指數特攻：課堂實戰版</h1>
+            <p style="color: #94a3b8; max-width: 520px; line-height: 1.5; font-size: 0.95rem;">
+                8 大指數星域告急！每關擊退 <b>10 隻快節奏雜兵</b> 後將遭遇 <b>超慢速大 Boss</b>！
+            </p>
+
+            <div class="mode-selection-container">
+                <div class="mode-card normal-mode" onclick="startGame('normal')">
+                    <div style="font-size: 2.2rem;">🔰</div>
+                    <div class="mode-title" style="color: #38bdf8;">基礎防衛隊</div>
+                    <div class="mode-desc">
+                        • 隕石速度<b>適中</b><br>
+                        • <b>答錯時彈出純公式便條提示</b><br>
+                        • <b>累計 7 次算錯防線失守</b>
+                    </div>
+                    <button class="btn-action" style="font-size: 0.95rem; padding: 8px 16px; margin-top: 6px;">選擇出擊</button>
+                </div>
+
+                <div class="mode-card challenge-mode" onclick="startGame('challenge')">
+                    <div style="font-size: 2.2rem;">🔥</div>
+                    <div class="mode-title" style="color: #ff007f;">菁英突擊隊</div>
+                    <div class="mode-desc">
+                        • 隕石速度<b>加快 25%</b><br>
+                        • <b>無任何公式提示</b><br>
+                        • <b>得分 1.5 倍加成</b> 爭奪排行榜
+                    </div>
+                    <button class="btn-action" style="background: linear-gradient(135deg, #ff007f, #f43f5e); font-size: 0.95rem; padding: 8px 16px; margin-top: 6px;">菁英出擊</button>
+                </div>
+            </div>
+
+            <button class="btn-sub" onclick="showLeaderboard()">📊 榮譽排行榜</button>
+        </div>
+
+        <!-- ⏸️ 暫停選單彈窗 -->
+        <div class="overlay-screen hidden" id="pause-screen">
+            <h2 style="color: var(--neon-yellow); font-size: 2rem; margin-bottom: 8px;">⏸️ 戰術暫停中</h2>
+            <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 18px;">請選擇下一步操作：</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px;">
+                <button class="btn-action" onclick="resumeGame()" style="margin: 0;">▶️ 繼續作戰</button>
+                <button class="btn-sub" onclick="restartCurrentWave()" style="margin: 0; padding: 12px;">🔄 重玩本關 (Wave <span id="pause-wave-num">1</span>)</button>
+                <button class="btn-sub btn-danger" onclick="giveUpAndHome()" style="margin: 0; padding: 12px;">🏠 放棄紀錄返回主頁</button>
+            </div>
+        </div>
+
+        <!-- 結算畫面 -->
+        <div class="overlay-screen hidden" id="gameover-screen">
+            <h1 id="over-title" class="title-glitch" style="color: var(--neon-pink);">防線失守！</h1>
+            <p id="over-msg" style="color: #cbd5e1; font-size: 1.05rem; margin-bottom: 10px;"></p>
+            <div style="font-size: 1.8rem; font-weight: 900; color: var(--neon-yellow); margin-bottom: 12px;">
+                最終得分: <span id="final-score">0</span>
+            </div>
+            <div style="font-size: 1.05rem; color: var(--neon-green); margin-bottom: 16px;" id="player-title">
+                獲得稱號: 指數實習兵
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <input type="text" id="player-name" placeholder="輸入班別+姓名 (如 3A08_Peter)" 
+                       style="padding: 10px; border-radius: 8px; border: 1px solid #38bdf8; background: #0f172a; color: #fff; width: 240px; text-align: center; font-size: 1rem;">
+                <button class="btn-sub" onclick="saveRecord()">登記成績</button>
+            </div>
+
+            <div>
+                <button class="btn-action" onclick="showStartScreen()">🔄 更換模式重玩</button>
+                <button class="btn-sub" onclick="showLeaderboard()">🏆 排行榜</button>
+            </div>
+        </div>
+
+        <!-- 排行榜視窗 -->
+        <div class="overlay-screen hidden" id="leaderboard-screen">
+            <h2 style="color: var(--neon-yellow); font-size: 1.8rem; margin-bottom: 10px;">🏆 宇宙特攻榮譽榜</h2>
+            <table class="rank-table">
+                <thead>
+                    <tr><th>排名</th><th>特工姓名</th><th>作戰模式</th><th>抵達波次</th><th>最終得分</th></tr>
+                </thead>
+                <tbody id="rank-body"></tbody>
+            </table>
+            <button class="btn-action" onclick="closeLeaderboard()">返回基地</button>
+            <button class="btn-sub" onclick="clearRanks()" style="font-size: 0.8rem; margin-top: 8px;">清空紀錄</button>
+        </div>
+
+        <!-- 📝 答錯時彈出的便條紙木夾提示卡 (純公式) -->
+        <div class="hint-modal-overlay hidden" id="hint-modal" onclick="closeHint()">
+            <div class="hint-sticky-note" onclick="event.stopPropagation()">
+                <div class="hint-title">💡 指數律公式法則</div>
+                <div class="hint-body" id="hint-content">aᵐ · aⁿ = aᵐ⁺ⁿ</div>
+                <button class="hint-close-btn" onclick="closeHint()">明白，重新計算！</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio 8-Bit 音效系統 ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSfx(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'laser') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(850, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'boom') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 0.3);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'boss_warning') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(440, now + 0.2);
+                osc.frequency.setValueAtTime(220, now + 0.4);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(110, now);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'nuke') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(900, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.8);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
+                osc.start(now); osc.stop(now + 0.8);
+            }
+        }
+
+        // --- 8 大關卡題庫 (嚴格純公式提示，無任何數值或答案洩漏) ---
+        const campaignData = [
+            // Wave 1: 同底數乘除法
+            {
+                minionPool: [
+                    { exp: "x⁴ · x⁵", ans: "x⁹", opts: ["x⁹", "x²⁰", "x¹", "2x⁹"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "y⁸ ÷ y³", ans: "y⁵", opts: ["y⁵", "y¹¹", "y²⁴", "y⁻⁵"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "2³ · 2²", ans: "32", opts: ["32", "64", "16", "2⁶"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "a⁶ · a", ans: "a⁷", opts: ["a⁷", "a⁶", "2a⁶", "a⁵"], hint: "a = a¹<br>aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "m¹⁰ ÷ m⁴", ans: "m⁶", opts: ["m⁶", "m¹⁴", "m⁴", "m⁻⁶"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "3⁴ ÷ 3²", ans: "9", opts: ["9", "27", "3", "81"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "x² · x³ · x⁴", ans: "x⁹", opts: ["x⁹", "x²⁴", "3x⁹", "x⁵"], hint: "aᵐ · aⁿ · aᵖ = aᵐ⁺ⁿ⁺ᵖ" },
+                    { exp: "p⁵ · p⁵", ans: "p¹⁰", opts: ["p¹⁰", "p²⁵", "2p⁵", "p¹"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "10⁵ ÷ 10³", ans: "100", opts: ["100", "10", "1000", "10⁸"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "k¹² ÷ k", ans: "k¹¹", opts: ["k¹¹", "k¹²", "12", "k"], hint: "a = a¹<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "2⁴ · 2", ans: "32", opts: ["32", "16", "2⁴", "64"], hint: "a = a¹<br>aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "z⁶ / z²", ans: "z⁴", opts: ["z⁴", "z³", "z⁸", "z⁻⁴"], hint: "aᵐ / aⁿ = aᵐ⁻ⁿ" }
+                ],
+                boss: {
+                    name: "乘除霸主史萊姆 👑",
+                    exp: "(x⁷ · x⁻²) ÷ (x³ · x⁻⁴)",
+                    ans: "x⁶",
+                    opts: ["x⁶", "x⁴", "x⁻⁶", "x²"],
+                    hint: "aᵐ · aⁿ = aᵐ⁺ⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ"
+                }
+            },
+            // Wave 2: 零指數律與負整數指數
+            {
+                minionPool: [
+                    { exp: "(7a)⁰ (a ≠ 0)", ans: "1", opts: ["1", "0", "7", "7a"], hint: "a⁰ = 1 (a ≠ 0)" },
+                    { exp: "x⁻⁴", ans: "1 / x⁴", opts: ["1 / x⁴", "-x⁴", "-4x", "x⁴"], hint: "a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "a³ ÷ a⁸", ans: "1 / a⁵", opts: ["1 / a⁵", "a⁵", "a⁻¹¹", "-a⁵"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ<br>a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "3 · x⁻¹", ans: "3 / x", opts: ["3 / x", "1 / 3x", "-3x", "3x"], hint: "k · a⁻ⁿ = k / aⁿ" },
+                    { exp: "(2x)⁻¹", ans: "1 / 2x", opts: ["1 / 2x", "2 / x", "-2x", "2x"], hint: "(ab)⁻ⁿ = 1 / (ab)ⁿ" },
+                    { exp: "2⁻³", ans: "1 / 8", opts: ["1 / 8", "-8", "-6", "1 / 6"], hint: "a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "(x²)⁰ + 5⁰", ans: "2", opts: ["2", "1", "0", "x²+5"], hint: "a⁰ = 1" },
+                    { exp: "y⁻⁵ · y²", ans: "1 / y³", opts: ["1 / y³", "y³", "1 / y⁷", "-y³"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ<br>a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "4a⁻²b³", ans: "4b³ / a²", opts: ["4b³ / a²", "4 / (a²b³)", "4a²b³", "b³ / 4a²"], hint: "a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "x⁻² ÷ x⁻⁵", ans: "x³", opts: ["x³", "x⁻⁷", "1 / x³", "x⁷"], hint: "aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(a / b)⁻¹", ans: "b / a", opts: ["b / a", "-a / b", "1 / ab", "ab"], hint: "(a / b)⁻ⁿ = (b / a)ⁿ" }
+                ],
+                boss: {
+                    name: "負指數幽靈大公 👑",
+                    exp: "(3x⁰y⁻²)⁻¹",
+                    ans: "y² / 3",
+                    opts: ["y² / 3", "3y²", "y² / 9", "1 / 3y²"],
+                    hint: "a⁰ = 1<br>(ab)ⁿ = aⁿbⁿ<br>(aᵐ)ⁿ = aᵐⁿ<br>a⁻ⁿ = 1 / aⁿ"
+                }
+            },
+            // Wave 3: 冪的乘方與積的乘方
+            {
+                minionPool: [
+                    { exp: "(a³)²", ans: "a⁶", opts: ["a⁶", "a⁵", "a⁹", "a¹"], hint: "(aᵐ)ⁿ = aᵐⁿ" },
+                    { exp: "(2x²)³", ans: "8x⁶", opts: ["8x⁶", "2x⁶", "6x⁵", "8x⁵"], hint: "(ab)ⁿ = aⁿbⁿ<br>(aᵐ)ⁿ = aᵐⁿ" },
+                    { exp: "(x²y³)²", ans: "x⁴y⁶", opts: ["x⁴y⁶", "x²y⁶", "x⁴y⁵", "xy¹⁰"], hint: "(aᵐbⁿ)ᵖ = aᵐᵖbⁿᵖ" },
+                    { exp: "(a⁴)³ ÷ a⁵", ans: "a⁷", opts: ["a⁷", "a¹²", "a²", "a⁻²"], hint: "(aᵐ)ⁿ = aᵐⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "((x²)³)²", ans: "x¹²", opts: ["x¹²", "x⁷", "x⁸", "x¹⁸"], hint: "((aᵐ)ⁿ)ᵖ = aᵐⁿᵖ" },
+                    { exp: "(p⁵)² · p³", ans: "p¹³", opts: ["p¹³", "p¹⁰", "p³⁰", "p⁸"], hint: "(aᵐ)ⁿ = aᵐⁿ<br>aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "(3m²n)²", ans: "9m⁴n²", opts: ["9m⁴n²", "6m⁴n²", "9m²n²", "3m⁴n²"], hint: "(ab)ⁿ = aⁿbⁿ" },
+                    { exp: "(x³)⁵ ÷ (x²)⁴", ans: "x⁷", opts: ["x⁷", "x¹⁵", "x⁸", "x¹"], hint: "(aᵐ)ⁿ = aᵐⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(2a³b)²", ans: "4a⁶b²", opts: ["4a⁶b²", "2a⁶b²", "4a⁵b²", "4a⁶b"], hint: "(ab)ⁿ = aⁿbⁿ" },
+                    { exp: "((y⁴)²)⁰", ans: "1", opts: ["1", "y⁸", "0", "y⁶"], hint: "a⁰ = 1" }
+                ],
+                boss: {
+                    name: "積方泰坦巨像 👑",
+                    exp: "((a⁻³b²) / (2a²b⁻¹))⁻²",
+                    ans: "4a¹⁰ / b⁶",
+                    opts: ["4a¹⁰ / b⁶", "2a¹⁰ / b⁶", "a¹⁰ / (4b⁶)", "4b⁶ / a¹⁰"],
+                    hint: "aᵐ / aⁿ = aᵐ⁻ⁿ<br>(a / b)⁻ⁿ = (b / a)ⁿ<br>(ab)ⁿ = aⁿbⁿ"
+                }
+            },
+            // Wave 4: 負數底與括號正負號分配
+            {
+                minionPool: [
+                    { exp: "(-3x³)²", ans: "9x⁶", opts: ["9x⁶", "-9x⁶", "-6x⁵", "9x⁵"], hint: "(-a)²ⁿ = a²ⁿ (偶次為正)<br>(ab)ⁿ = aⁿbⁿ" },
+                    { exp: "(-2a³)³", ans: "-8a⁹", opts: ["-8a⁹", "8a⁹", "-6a⁹", "-8a⁶"], hint: "(-a)²ⁿ⁺¹ = -a²ⁿ⁺¹ (奇次為負)<br>(ab)ⁿ = aⁿbⁿ" },
+                    { exp: "-(2x)⁴", ans: "-16x⁴", opts: ["-16x⁴", "16x⁴", "-8x⁴", "-16x"], hint: "-(ab)ⁿ = -(aⁿbⁿ)" },
+                    { exp: "(-x²)³", ans: "-x⁶", opts: ["-x⁶", "x⁶", "-x⁵", "x⁵"], hint: "(-a)³ = -a³<br>(aᵐ)ⁿ = aᵐⁿ" },
+                    { exp: "(-1)¹⁰⁰ + (-1)⁹⁹", ans: "0", opts: ["0", "2", "-2", "1"], hint: "(-1)²ⁿ = 1<br>(-1)²ⁿ⁺¹ = -1" },
+                    { exp: "(-2x³)² · x⁻⁴", ans: "4x²", opts: ["4x²", "-4x²", "4x⁻²⁴", "-2x²"], hint: "(-a)² = a²<br>(aᵐ)ⁿ = aᵐⁿ<br>aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "(-3a)⁰ - (-2)³", ans: "9", opts: ["9", "7", "-7", "1"], hint: "a⁰ = 1<br>(-a)³ = -a³" },
+                    { exp: "-(x⁻²)⁻³", ans: "-x⁶", opts: ["-x⁶", "x⁶", "-1/x⁶", "x⁻⁵"], hint: "(aᵐ)ⁿ = aᵐⁿ" },
+                    { exp: "(-a²b)⁴", ans: "a⁸b⁴", opts: ["a⁸b⁴", "-a⁸b⁴", "a⁶b⁴", "a⁸b"], hint: "(-a)⁴ = a⁴<br>(ab)ⁿ = aⁿbⁿ" }
+                ],
+                boss: {
+                    name: "暗黑符號領主 👑",
+                    exp: "(-2x³y⁻²)³ · (x²y⁴)",
+                    ans: "-8x¹¹ / y²",
+                    opts: ["-8x¹¹ / y²", "8x¹¹ / y²", "-8x¹¹y²", "-6x¹¹ / y²"],
+                    hint: "(-a)³ = -a³<br>(aᵐbⁿ)ᵖ = aᵐᵖbⁿᵖ<br>aᵐ · aⁿ = aᵐ⁺ⁿ<br>a⁻ⁿ = 1 / aⁿ"
+                }
+            },
+            // Wave 5: 科學記數法運算
+            {
+                minionPool: [
+                    { exp: "(3×10⁴) × (2×10³)", ans: "6 × 10⁷", opts: ["6 × 10⁷", "6 × 10¹²", "5 × 10⁷", "6 × 10¹"], hint: "(a×10ᵐ)×(b×10ⁿ) = (ab)×10ᵐ⁺ⁿ" },
+                    { exp: "(8×10⁶) ÷ (2×10²)", ans: "4 × 10⁴", opts: ["4 × 10⁴", "4 × 10⁸", "4 × 10³", "6 × 10⁴"], hint: "(a×10ᵐ)÷(b×10ⁿ) = (a/b)×10ᵐ⁻ⁿ" },
+                    { exp: "10⁻³ 的數值", ans: "0.001", opts: ["0.001", "0.01", "-1000", "-30"], hint: "10⁻ⁿ = 1 / 10ⁿ" },
+                    { exp: "(4×10⁵) × (2×10⁻²)", ans: "8 × 10³", opts: ["8 × 10³", "8 × 10⁷", "8 × 10⁻¹⁰", "6 × 10³"], hint: "10ᵐ · 10ⁿ = 10ᵐ⁺ⁿ" },
+                    { exp: "(9×10⁻³) ÷ (3×10⁻⁵)", ans: "300", opts: ["300", "3", "30", "0.03"], hint: "10ᵐ ÷ 10ⁿ = 10ᵐ⁻ⁿ" },
+                    { exp: "0.00045 的科學記數法", ans: "4.5 × 10⁻⁴", opts: ["4.5 × 10⁻⁴", "45 × 10⁻⁵", "4.5 × 10⁴", "0.45 × 10⁻³"], hint: "科學記數法標準形式：<br>a × 10ⁿ (1 ≤ a < 10)" },
+                    { exp: "(1.5×10³) × (4×10²)", ans: "6 × 10⁵", opts: ["6 × 10⁵", "6 × 10⁶", "5.5 × 10⁵", "60 × 10⁴"], hint: "(a×10ᵐ)×(b×10ⁿ) = (ab)×10ᵐ⁺ⁿ" },
+                    { exp: "(6×10⁸) ÷ (3×10⁻²)", ans: "2 × 10¹⁰", opts: ["2 × 10¹⁰", "2 × 10⁶", "2 × 10⁻⁴", "18 × 10⁶"], hint: "10ᵐ ÷ 10ⁿ = 10ᵐ⁻ⁿ" }
+                ],
+                boss: {
+                    name: "量子巡航母艦 👑",
+                    exp: "((4.8×10⁷)×(1.5×10⁻²)) ÷ (2.4×10²)",
+                    ans: "3 × 10³",
+                    opts: ["3 × 10³", "3 × 10⁵", "3 × 10⁷", "30 × 10³"],
+                    hint: "10ᵐ · 10ⁿ = 10ᵐ⁺ⁿ<br>10ᵐ ÷ 10ⁿ = 10ᵐ⁻ⁿ"
+                }
+            },
+            // Wave 6: 二進制換算
+            {
+                minionPool: [
+                    { exp: "二進制 1101₂ 化為十進制", ans: "13", opts: ["13", "11", "15", "9"], hint: "二進制位值展開：<br>d₃×2³ + d₂×2² + d₁×2¹ + d₀×2⁰" },
+                    { exp: "二進制 1010₂ 化為十進制", ans: "10", opts: ["10", "12", "8", "14"], hint: "二進制位值展開：<br>d₃×2³ + d₂×2² + d₁×2¹ + d₀×2⁰" },
+                    { exp: "二進制 1111₂ 化為十進制", ans: "15", opts: ["15", "16", "14", "8"], hint: "二進制位值展開：<br>2³ + 2² + 2¹ + 2⁰" },
+                    { exp: "二進制 10001₂ 化為十進制", ans: "17", opts: ["17", "9", "33", "19"], hint: "二進制位值展開：<br>2⁴ + 2⁰" },
+                    { exp: "十進制 6 化為二進制", ans: "110₂", opts: ["110₂", "101₂", "111₂", "100₂"], hint: "將數值拆解為 2 的冪之和：<br>2², 2¹, 2⁰" },
+                    { exp: "二進制 100₂ + 11₂", ans: "111₂ (7)", opts: ["111₂ (7)", "101₂", "110₂", "1000₂"], hint: "轉化為十進制運算或同位對齊相加" },
+                    { exp: "二進制 100000₂ (2⁵) 為", ans: "32", opts: ["32", "64", "16", "20"], hint: "2ⁿ 之位值關係" },
+                    { exp: "十進制 9 化為二進制", ans: "1001₂", opts: ["1001₂", "1011₂", "1101₂", "1000₂"], hint: "拆解為 2³ + 2⁰" }
+                ],
+                boss: {
+                    name: "二進制核心智腦 👑",
+                    exp: "二進制 (10110₂ - 110₂)",
+                    ans: "16 (10000₂)",
+                    opts: ["16 (10000₂)", "14", "18", "12"],
+                    hint: "分別化為十進制做減法<br>再轉化為 2 的冪"
+                }
+            },
+            // Wave 7: 繁分式綜合化簡
+            {
+                minionPool: [
+                    { exp: "(x³ · x⁻¹)³", ans: "x⁶", opts: ["x⁶", "x²", "x⁻⁶", "x⁸"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ<br>(aᵐ)ⁿ = aᵐⁿ" },
+                    { exp: "(2a²b⁻¹)³ ÷ (4a⁵b⁻²)", ans: "2a / b", opts: ["2a / b", "2ab", "a / 2b", "4a / b"], hint: "(ab)ⁿ = aⁿbⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(12x⁴y⁻²) ÷ (3x⁻¹y³)", ans: "4x⁵ / y⁵", opts: ["4x⁵ / y⁵", "4x³ / y", "9x⁵ / y⁵", "4x⁵y"], hint: "係數相除<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ<br>a⁻ⁿ = 1 / aⁿ" },
+                    { exp: "(x²)³ · x⁻⁴", ans: "x²", opts: ["x²", "x¹⁰", "x⁻²⁴", "x⁻²"], hint: "(aᵐ)ⁿ = aᵐⁿ<br>aᵐ · aⁿ = aᵐ⁺ⁿ" },
+                    { exp: "(a⁻¹ + b⁻¹)⁻¹", ans: "ab / (a + b)", opts: ["ab / (a + b)", "a + b", "1 / (a + b)", "ab"], hint: "a⁻¹ = 1/a<br>通分化簡後取倒數" },
+                    { exp: "((x⁻²y) / (xy⁻²))⁻²", ans: "x⁶ / y⁶", opts: ["x⁶ / y⁶", "y⁶ / x⁶", "x⁴ / y⁴", "1"], hint: "aᵐ / aⁿ = aᵐ⁻ⁿ<br>(a/b)⁻ⁿ = (b/a)ⁿ" },
+                    { exp: "(2x⁻¹y³)² ÷ (4x⁻⁴y²)", ans: "x²y⁴", opts: ["x²y⁴", "y⁴ / x²", "4x²y⁴", "x⁻⁶y⁴"], hint: "(ab)ⁿ = aⁿbⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" }
+                ],
+                boss: {
+                    name: "繁分式混沌魔神 👑",
+                    exp: "(x²y⁻³)⁻² ÷ (x⁻³y⁴)",
+                    ans: "y² / x",
+                    opts: ["y² / x", "x / y²", "x⁷ / y¹⁰", "1 / (xy²)"],
+                    hint: "(aᵐbⁿ)ᵖ = aᵐᵖbⁿᵖ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ<br>a⁻ⁿ = 1 / aⁿ"
+                }
+            },
+            // Wave 8: 終極 n 因子代數指數挑戰
+            {
+                minionPool: [
+                    { exp: "(x²ⁿ⁺¹ · xⁿ⁻³) ÷ x³ⁿ⁻²", ans: "1", opts: ["1", "x²", "x⁻⁴", "x"], hint: "aᵐ · aⁿ = aᵐ⁺ⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(2ⁿ⁺² - 2ⁿ) ÷ 2ⁿ", ans: "3", opts: ["3", "2", "4", "2ⁿ"], hint: "2ⁿ⁺ᵐ = 2ⁿ · 2ᵐ<br>提取公因式 2ⁿ" },
+                    { exp: "(3ⁿ⁺¹ + 3ⁿ) ÷ 3ⁿ", ans: "4", opts: ["4", "3", "6", "3ⁿ"], hint: "3ⁿ⁺¹ = 3ⁿ · 3¹<br>提取公因式 3ⁿ" },
+                    { exp: "(5ⁿ⁺¹ - 5ⁿ) ÷ 5ⁿ", ans: "4", opts: ["4", "5", "1", "5ⁿ"], hint: "5ⁿ⁺¹ = 5ⁿ · 5¹<br>提取公因式 5ⁿ" },
+                    { exp: "(2ⁿ · 4) ÷ 2ⁿ⁺¹", ans: "2", opts: ["2", "4", "1", "2ⁿ"], hint: "4 = 2²<br>aᵐ · aⁿ = aᵐ⁺ⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(9 · 3ⁿ) ÷ 3ⁿ⁺²", ans: "1", opts: ["1", "3", "9", "3ⁿ"], hint: "9 = 3²<br>aᵐ · aⁿ = aᵐ⁺ⁿ<br>aᵐ ÷ aⁿ = aᵐ⁻ⁿ" },
+                    { exp: "(xⁿ)² · x³⁻²ⁿ", ans: "x³", opts: ["x³", "x²ⁿ", "x", "1"], hint: "(aᵐ)ⁿ = aᵐⁿ<br>aᵐ · aⁿ = aᵐ⁺ⁿ" }
+                ],
+                boss: {
+                    name: "終極指數大魔王 🐲",
+                    exp: "(2ⁿ⁺³ - 2ⁿ) ÷ (7 · 2ⁿ)",
+                    ans: "1",
+                    opts: ["1", "2³ / 7", "2ⁿ", "0"],
+                    hint: "2ⁿ⁺³ = 2ⁿ · 2³<br>提取公因式 2ⁿ 約簡"
+                }
+            }
+        ];
+
+        // --- 核心變數 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        let gameMode = 'normal';
+        let gameRunning = false;
+        let isPaused = false;
+        let score = 0;
+        let hp = 100;
+        let currentWave = 1;
+        let minionIndex = 0;
+        let currentWaveMinions = [];
+        let isBossActive = false;
+        let nukeCount = 1;
+
+        let meteors = [];
+        let particles = [];
+        let lasers = [];
+        let floatingTexts = [];
+        let stars = [];
+        let screenShake = 0;
+        let activeTarget = null;
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            width = canvas.width = container.clientWidth;
+            height = canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 50; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 2 + 1,
+                    speed: Math.random() * 0.6 + 0.3
+                });
+            }
+        }
+
+        function showStartScreen() {
+            gameRunning = false;
+            isPaused = false;
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+            document.getElementById('hint-modal').classList.add('hidden');
+        }
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+            document.getElementById('hint-modal').classList.add('hidden');
+
+            const modeBadge = document.getElementById('mode-badge');
+            if (gameMode === 'normal') {
+                modeBadge.innerText = "🔰 基礎模式";
+                modeBadge.style.color = "#38bdf8";
+            } else {
+                modeBadge.innerText = "🔥 菁英模式";
+                modeBadge.style.color = "#ff007f";
+            }
+
+            resizeCanvas();
+            initStars();
+
+            score = 0;
+            hp = 100;
+            currentWave = 1;
+            nukeCount = 1;
+            meteors = [];
+            particles = [];
+            lasers = [];
+            floatingTexts = [];
+            activeTarget = null;
+            gameRunning = true;
+            isPaused = false;
+
+            startWave(currentWave);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startWave(waveNum) {
+            currentWave = waveNum;
+            minionIndex = 0;
+            isBossActive = false;
+
+            const pool = [...campaignData[waveNum - 1].minionPool].sort(() => Math.random() - 0.5);
+            currentWaveMinions = pool.slice(0, 10);
+
+            updateProgressUI();
+            updateHUD();
+            spawnNextInWave();
+        }
+
+        // --- ⏸️ 暫停、繼續、重玩、放棄 ---
+        function pauseGame() {
+            if (!gameRunning || isPaused) return;
+            isPaused = true;
+            document.getElementById('pause-wave-num').innerText = currentWave;
+            document.getElementById('pause-screen').classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            if (!gameRunning || !isPaused) return;
+            isPaused = false;
+            document.getElementById('pause-screen').classList.add('hidden');
+            requestAnimationFrame(gameLoop);
+        }
+
+        function restartCurrentWave() {
+            document.getElementById('pause-screen').classList.add('hidden');
+            isPaused = false;
+            hp = 100;
+            meteors = [];
+            particles = [];
+            lasers = [];
+            activeTarget = null;
+            startWave(currentWave);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function giveUpAndHome() {
+            showStartScreen();
+        }
+
+        function updateProgressUI() {
+            const fill = document.getElementById('progress-fill');
+            const text = document.getElementById('progress-text');
+
+            if (minionIndex < 10) {
+                fill.className = "progress-fill";
+                fill.style.width = `${(minionIndex / 10) * 100}%`;
+                text.innerText = `👾 雜兵 ${minionIndex} / 10`;
+            } else {
+                fill.className = "progress-fill boss-ready";
+                fill.style.width = `100%`;
+                text.innerText = `👑 BOSS 決戰！`;
+            }
+        }
+
+        function spawnNextInWave() {
+            const waveData = campaignData[currentWave - 1];
+            const speedMod = gameMode === 'normal' ? 0.75 : 1.05;
+
+            if (minionIndex < 10) {
+                const qData = currentWaveMinions[minionIndex];
+                meteors.push({
+                    x: Math.random() * (width - 240) + 120,
+                    y: -50,
+                    radius: 36,
+                    speed: (0.72 + currentWave * 0.05) * speedMod,
+                    exp: qData.exp,
+                    ans: qData.ans,
+                    opts: qData.opts,
+                    hint: qData.hint,
+                    isBoss: false,
+                    color: '#00f0ff'
+                });
+                setNewTarget();
+            } else if (minionIndex === 10 && !isBossActive) {
+                triggerBossEncounter(waveData.boss);
+            }
+        }
+
+        function triggerBossEncounter(bossData) {
+            isBossActive = true;
+            playSfx('boss_warning');
+
+            const banner = document.getElementById('boss-banner');
+            banner.innerText = `⚠️ WARNING: ${bossData.name} 降臨 ⚠️`;
+            banner.classList.add('show');
+            setTimeout(() => banner.classList.remove('show'), 1600);
+
+            const bossSpeed = gameMode === 'normal' ? 0.12 : 0.17;
+            setTimeout(() => {
+                meteors.push({
+                    x: width / 2,
+                    y: -80,
+                    radius: 56,
+                    speed: bossSpeed,
+                    exp: bossData.exp,
+                    ans: bossData.ans,
+                    opts: bossData.opts,
+                    hint: bossData.hint,
+                    isBoss: true,
+                    bossName: bossData.name,
+                    color: '#ff007f'
+                });
+                setNewTarget();
+            }, 800);
+        }
+
+        function setNewTarget() {
+            if (meteors.length === 0) {
+                document.getElementById('ammo-grid').innerHTML = '';
+                activeTarget = null;
+                return;
+            }
+            activeTarget = meteors[0];
+
+            const grid = document.getElementById('ammo-grid');
+            grid.innerHTML = '';
+
+            const shuffled = [...activeTarget.opts].sort(() => Math.random() - 0.5);
+            shuffled.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'missile-btn';
+                btn.innerHTML = formatSup(opt);
+                btn.onclick = () => shootMissile(opt, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function formatSup(text) {
+            return text.toString().replace(/\^([0-9a-zA-Z\-\+]+)/g, '<sup>$1</sup>');
+        }
+
+        function shootMissile(chosenAns, btnEl) {
+            if (!gameRunning || isPaused || !activeTarget) return;
+
+            if (chosenAns === activeTarget.ans) {
+                playSfx('laser');
+                const targetX = activeTarget.x;
+                const targetY = activeTarget.y;
+
+                lasers.push({
+                    x1: width / 2, y1: height - 10,
+                    x2: targetX, y2: targetY,
+                    alpha: 1,
+                    color: activeTarget.isBoss ? '#ffe600' : '#00f0ff'
+                });
+
+                const scoreMult = gameMode === 'challenge' ? 1.5 : 1.0;
+                const basePts = activeTarget.isBoss ? (700 * currentWave) : (100 * currentWave);
+                const earnedScore = Math.round(basePts * scoreMult);
+                score += earnedScore;
+
+                createSparks(targetX, targetY, activeTarget.color, activeTarget.isBoss ? 45 : 25);
+                addFloatingText(targetX, targetY - 20, `🎯 擊破！+${earnedScore}分`, '#ffe600', activeTarget.isBoss ? 24 : 18);
+
+                playSfx('boom');
+                screenShake = activeTarget.isBoss ? 20 : 8;
+                meteors = [];
+
+                minionIndex++;
+                updateProgressUI();
+
+                if (minionIndex > 10) {
+                    if (currentWave < 8) {
+                        nukeCount++;
+                        addFloatingText(width / 2, height / 2, `🎉 WAVE ${currentWave} 完成！獲得 a⁰ 炸彈！`, '#39ff14', 26);
+                        setTimeout(() => startWave(currentWave + 1), 1500);
+                    } else {
+                        gameOver(true);
+                    }
+                } else {
+                    setTimeout(spawnNextInWave, 400);
+                }
+            } else {
+                // ⚡ 算錯扣 14.3% HP（剛好 7 次陣亡）
+                playSfx('hit');
+                const penalty = 14.3;
+                hp = Math.max(0, hp - penalty);
+                screenShake = 6;
+
+                btnEl.classList.add('btn-wrong');
+                btnEl.disabled = true;
+
+                addFloatingText(width / 2, height - 70, `❌ 運算錯誤！防線 HP -${Math.round(penalty)}%`, '#ff0055', 18);
+                
+                if (gameMode === 'normal' && activeTarget.hint) {
+                    showHint(activeTarget.hint);
+                }
+
+                updateHUD();
+                if (hp <= 0.5) gameOver(false);
+            }
+            updateHUD();
+        }
+
+        function showHint(hintHtml) {
+            const modal = document.getElementById('hint-modal');
+            const content = document.getElementById('hint-content');
+            content.innerHTML = hintHtml;
+            modal.classList.remove('hidden');
+        }
+
+        function closeHint() {
+            document.getElementById('hint-modal').classList.add('hidden');
+        }
+
+        function useNuke() {
+            if (nukeCount <= 0 || meteors.length === 0 || isPaused) return;
+            nukeCount--;
+            playSfx('nuke');
+            screenShake = 22;
+
+            meteors.forEach(m => {
+                createSparks(m.x, m.y, '#ffe600', 30);
+                score += 250;
+            });
+            meteors = [];
+            addFloatingText(width / 2, height / 2, "💣 a⁰ 零指數奧義：全屏化為 1！", '#ffe600', 26);
+            
+            minionIndex++;
+            updateProgressUI();
+
+            if (minionIndex > 10) {
+                if (currentWave < 8) {
+                    setTimeout(() => startWave(currentWave + 1), 1200);
+                } else {
+                    gameOver(true);
+                }
+            } else {
+                setTimeout(spawnNextInWave, 500);
+            }
+            updateHUD();
+        }
+
+        function createSparks(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = Math.random() * 5 + 2;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    size: Math.random() * 3 + 2,
+                    color,
+                    life: 1
+                });
+            }
+        }
+
+        function addFloatingText(x, y, text, color, size = 18) {
+            floatingTexts.push({ x, y, text, color, size, life: 1 });
+        }
+
+        function gameLoop() {
+            if (!gameRunning || isPaused) return;
+
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+                screenShake *= 0.88;
+            }
+
+            ctx.fillStyle = '#070913';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = '#ffffff';
+            stars.forEach(s => {
+                s.y += s.speed;
+                if (s.y > height) s.y = 0;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            });
+
+            meteors.forEach((m) => {
+                m.y += m.speed;
+
+                ctx.shadowBlur = m.isBoss ? 25 : 15;
+                ctx.shadowColor = m.color;
+                ctx.fillStyle = m.color;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.radius - 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${m.isBoss ? 15 : 16}px 'Segoe UI', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(m.exp, m.x, m.y);
+
+                if (m.isBoss) {
+                    ctx.font = `bold 12px 'Chakra Petch', sans-serif`;
+                    ctx.fillStyle = '#ffe600';
+                    ctx.fillText(`${m.bossName}`, m.x, m.y - m.radius - 12);
+                }
+
+                if (m.y > height - 20) {
+                    hp -= m.isBoss ? 35 : 20;
+                    playSfx('boom');
+                    screenShake = 18;
+                    createSparks(m.x, height, '#ff0055', 30);
+                    meteors = [];
+                    minionIndex++;
+                    updateProgressUI();
+                    updateHUD();
+
+                    if (hp <= 0.5) {
+                        gameOver(false);
+                    } else {
+                        if (minionIndex > 10 && currentWave < 8) {
+                            startWave(currentWave + 1);
+                        } else {
+                            setTimeout(spawnNextInWave, 600);
+                        }
+                    }
+                }
+            });
+
+            lasers.forEach((l, idx) => {
+                ctx.strokeStyle = l.color;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(l.x1, l.y1);
+                ctx.lineTo(l.x2, l.y2);
+                ctx.stroke();
+                l.alpha -= 0.12;
+                if (l.alpha <= 0) lasers.splice(idx, 1);
+            });
+
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                ctx.globalAlpha = 1;
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+
+            floatingTexts.forEach((t, idx) => {
+                t.y -= 0.9;
+                t.life -= 0.018;
+                ctx.font = `bold ${t.size}px 'Chakra Petch', sans-serif`;
+                ctx.fillStyle = t.color;
+                ctx.globalAlpha = Math.max(0, t.life);
+                ctx.fillText(t.text, t.x, t.y);
+                ctx.globalAlpha = 1;
+                if (t.life <= 0) floatingTexts.splice(idx, 1);
+            });
+
+            ctx.fillStyle = '#00f0ff';
+            ctx.beginPath();
+            ctx.arc(width / 2, height, 34, Math.PI, 0);
+            ctx.fill();
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateHUD() {
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('hp-val').innerText = Math.max(0, Math.ceil(hp));
+            document.getElementById('wave-val').innerText = currentWave;
+
+            const nukeBtn = document.getElementById('nuke-btn');
+            document.getElementById('nuke-count').innerText = nukeCount;
+            nukeBtn.disabled = nukeCount <= 0;
+        }
+
+        function gameOver(isWin) {
+            gameRunning = false;
+            isPaused = false;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+
+            const titleEl = document.getElementById('over-title');
+            const msgEl = document.getElementById('over-msg');
+            const rankTitleEl = document.getElementById('player-title');
+
+            const modeLabel = gameMode === 'challenge' ? '🔥 菁英' : '🔰 基礎';
+
+            if (isWin) {
+                titleEl.innerText = "👑 完美通關！全星域解放！";
+                titleEl.style.color = "var(--neon-yellow)";
+                msgEl.innerText = `太強了！你以 [${modeLabel}] 模式完美擊退 80 隻雜兵與全部 8 大指數魔王！`;
+                rankTitleEl.innerText = gameMode === 'challenge' ? "獲得稱號: 🌌 宇宙指數之神 (DSE 5** 滿分戰力)" : "獲得稱號: 🛡️ 指數榮譽防衛長";
+            } else {
+                titleEl.innerText = "防線失守！";
+                titleEl.style.color = "var(--neon-pink)";
+                msgEl.innerText = `你在第 ${currentWave} 關倒下了，在草稿紙上多驗算一步就能過關！`;
+                
+                let title = "指數實習生 🐣";
+                if (score >= 6000) title = "⚡ 代數特攻戰神";
+                else if (score >= 3000) title = "🛡️ 資深指數兵長";
+                rankTitleEl.innerText = `獲得稱號: [${modeLabel}] ${title}`;
+            }
+        }
+
+        function getScores() {
+            return JSON.parse(localStorage.getItem('index_blast_final_ranks') || '[]');
+        }
+
+        function saveRecord() {
+            const nameInput = document.getElementById('player-name');
+            const name = nameInput.value.trim() || '無名特工';
+            const ranks = getScores();
+
+            ranks.push({ 
+                name, 
+                score, 
+                wave: currentWave,
+                mode: gameMode === 'challenge' ? '🔥 菁英' : '🔰 基礎'
+            });
+            ranks.sort((a, b) => b.score - a.score);
+            localStorage.setItem('index_blast_final_ranks', JSON.stringify(ranks.slice(0, 10)));
+            showLeaderboard();
+        }
+
+        function showLeaderboard() {
+            const ranks = getScores();
+            const body = document.getElementById('rank-body');
+            body.innerHTML = '';
+
+            if (ranks.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="color: #64748b;">暫無特工紀錄</td></tr>';
+            } else {
+                ranks.forEach((r, idx) => {
+                    const row = document.createElement('tr');
+                    let rankBadge = `${idx + 1}`;
+                    if (idx === 0) rankBadge = '🥇 1';
+                    if (idx === 1) rankBadge = '🥈 2';
+                    if (idx === 2) rankBadge = '🥉 3';
+
+                    row.innerHTML = `
+                        <td style="color: var(--neon-yellow); font-weight: bold;">${rankBadge}</td>
+                        <td style="font-weight: 700;">${r.name}</td>
+                        <td>${r.mode || '🔰 基礎'}</td>
+                        <td>Wave ${r.wave}</td>
+                        <td style="color: var(--neon-blue); font-weight: 800;">${r.score}</td>
+                    `;
+                    body.appendChild(row);
+                });
+            }
+            document.getElementById('leaderboard-screen').classList.remove('hidden');
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+        }
+
+        function clearRanks() {
+            if (confirm('確定清空所有排行榜紀錄？')) {
+                localStorage.removeItem('index_blast_final_ranks');
+                showLeaderboard();
+            }
+        }
+
+        window.onload = showStartScreen;
+    </script>
+</body>
+</html>
